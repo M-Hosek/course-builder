@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Builder accessibility check</title>
+<link rel="stylesheet" href="../styles.css">
+<script src="../vendor/jszip.min.js"></script>
+<script src="../node_modules/axe-core/axe.min.js"></script>
+<script>window.__COURSE_BUILDER_TEST__ = true;</script>
+</head>
+<body>
+<!-- Walks the app through every screen and runs axe-core (WCAG 2.1 A and AA rules) on each.
+     Run with: npm run a11y -->
+<div id="root"></div>
+<pre id="out" aria-live="off">running…</pre>
+<script type="module">
+import { mount } from '../src/ui/app.js';
+import { fromTemplate } from '../src/templates.js';
+import { defaultAnswers } from '../src/walkthrough.js';
+import * as edit from '../src/edit.js';
+
+const out = document.getElementById('out');
+const lines = [];
+const say = (s) => { lines.push(s); out.textContent = lines.join('\n'); };
+const memory = new Map();
+const storage = { getItem: (k) => memory.get(k) ?? null, setItem: (k, v) => memory.set(k, v), removeItem: (k) => memory.delete(k) };
+const basics = { title: 'PSY 210 Online', firstDay: '2027-01-25', weeks: 14, dueWeekday: 5 };
+
+try {
+  const root = document.getElementById('root');
+  const store = mount(root, storage);
+
+  // A busy course: hybrid, a No class line, an annotation assignment, weights that miss 100, a date outside its week.
+  let course = edit.setMeets(edit.setFormat(fromTemplate('weekly', basics), 'hybrid'), [2, 4]);
+  course = edit.setNoClass(course, 9, ['2027-03-25'], 'Spring break');
+  const rr1 = course.weekRows[0].find((r) => r.title === 'Reading response 1');
+  course = edit.updateRow(course, rr1.id, { submissionTypes: ['online_upload', 'student_annotation'], due: '2027-02-05' });
+  course = edit.updateGroup(course, course.groups[3].id, { weight: 5 });
+  course = edit.setExtraCredit(course, { mode: 'separate', name: 'Museum visit', percent: 3, week: 10 });
+  course = edit.addRow(course, 2, 'class');
+
+  const screens = [
+    ['start', { screen: 'start', notice: 'This isn\'t a saved Course Builder file. Choose the file you got from "Download my work".' }],
+    ['basics', { screen: 'basics', basicsErrors: {} }],
+    ['basics with errors', { screen: 'basics', basicsDraft: { title: '', firstDay: '', weeks: '40', dueWeekday: '5' }, basicsErrors: { title: 'Enter a course title.', firstDay: 'Choose the first day of class.', weeks: 'Enter a number of weeks from 1 to 30.' } }],
+    ['pick a plan', { screen: 'templates', basics }],
+    ...[1, 2, 3, 4, 5].map((step) => [`walkthrough step ${step}`, { screen: 'walkthrough', basics, answers: defaultAnswers(), step }]),
+    ['review', { screen: 'review', course, dialog: null }],
+    ['review, weeks question', { screen: 'review', course, dialog: { type: 'weeks', weeks: 12 } }],
+    ['review, no-class form', { screen: 'review', course, dialog: { type: 'noclass', week: 8 } }],
+    ['review, download question', { screen: 'review', course, dialog: { type: 'download' } }],
+    ['review, other grading', { screen: 'review', course: edit.setGrading(course, 'other'), dialog: null }],
+    ['download', { screen: 'download', course, dialog: null }],
+  ];
+
+  let bad = 0;
+  for (const [name, patch] of screens) {
+    store.set(patch);
+    // npm run a11y -- --selftest plants a control with no name, to prove the check can fail.
+    if (location.search.includes('selftest')) root.append(Object.assign(document.createElement('input'), { type: 'text' }));
+    const result = await axe.run(root, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } });
+    if (result.violations.length === 0) { say(`A11Y OK ${name}`); continue; }
+    bad += result.violations.length;
+    for (const v of result.violations) {
+      say(`A11Y FAIL ${name}: ${v.id} — ${v.help} (${v.nodes.length} place${v.nodes.length === 1 ? '' : 's'})`);
+      for (const node of v.nodes.slice(0, 3)) say(`    ${node.html.slice(0, 160)}  ${node.failureSummary?.split('\n').slice(1, 2).join(' ').trim() ?? ''}`);
+    }
+  }
+  say(bad === 0 ? 'A11Y DONE: no problems found' : `A11Y DONE: ${bad} problem type(s) found`);
+} catch (e) {
+  say(`A11Y CRASHED: ${e.stack || e}`);
+}
+</script>
+</body>
+</html>
