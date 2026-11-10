@@ -127,7 +127,7 @@ export function setWeeks(course, weeks, onRemoved = 'move') {
 
 // ---- rows --------------------------------------------------------------------------------------
 
-const ROW_FIELDS = ['title', 'due', 'points', 'groupId', 'submissionTypes', 'theme', 'readings'];
+const ROW_FIELDS = ['title', 'due', 'points', 'groupId', 'submissionTypes', 'theme', 'readings', 'date'];
 
 export function updateRow(course, rowId, patch) {
   const c = copy(course);
