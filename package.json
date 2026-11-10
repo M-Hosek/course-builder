@@ -1,0 +1,21 @@
+{
+  "name": "course-builder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "a11y": "node checks/run-a11y.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@xmldom/xmldom": "^0.8.10",
+    "axe-core": "^4.10.2",
+    "jsdom": "^25.0.1",
+    "jszip": "^3.10.1",
+    "saxes": "^6.0.0"
+  }
+}
