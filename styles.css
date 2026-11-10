@@ -18,7 +18,7 @@ body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-.app { max-width: 78rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+.app { max-width: 96rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
 .screen-start .app, main.start, main.basics, main.templates, main.walkthrough, main.download { max-width: 44rem; }
 h1 { font-size: 1.8rem; line-height: 1.2; margin: 1rem 0 .5rem; }
 h2 { font-size: 1.3rem; margin: 0 0 .5rem; }
@@ -77,23 +77,30 @@ legend { font-weight: 600; padding: 0 .25rem; }
 .card strong { font-size: 1.1rem; }
 
 /* Review screen */
-.topbar { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 2px solid var(--line); padding: .5rem 0; }
+.topbar { background: #fff; border-bottom: 2px solid var(--line); padding: .5rem 0; }
 .topbar .row { display: flex; gap: .5rem 1.25rem; flex-wrap: wrap; align-items: end; margin: .25rem 0; }
 .topbar .field { margin: 0; }
 .topbar .spacer { flex: 1; }
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1.5rem; align-items: start; margin-top: 1rem; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 25rem; gap: 1.5rem; align-items: start; margin-top: 1rem; }
 @media (max-width: 70rem) { .layout { grid-template-columns: 1fr; } }
 .week { border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-bottom: 1.25rem; }
 .week table { width: 100%; border-collapse: collapse; }
-.week th { text-align: left; background: var(--panel); position: sticky; top: var(--topbar-height, 9rem); z-index: 1; padding: .35rem .4rem; font-size: .95rem; }
+.week th { text-align: left; background: var(--panel); position: sticky; top: 0; z-index: 1; padding: .35rem .4rem; font-size: .95rem; }
 .week td { padding: .3rem .4rem; border-top: 1px solid var(--line); vertical-align: top; }
-.week td input[type="text"] { width: 100%; min-width: 9rem; }
+.week td input[type="text"] { width: 100%; min-width: 12rem; }
+.week td input[type="date"] { width: 9.5rem; }
+.week td input[type="number"] { width: 4.5rem; }
+.week td select.group { max-width: 10rem; }
+.week th.actions, .week td:last-child { width: 1%; }
 tr.class-row td { background: #eef3fa; }
 .class-line { display: flex; gap: .5rem 1rem; flex-wrap: wrap; align-items: end; }
 .class-line .field { margin: 0; flex: 1 1 14rem; }
 .class-line .field input { width: 100%; }
 .class-line .when { font-weight: 600; min-width: 9rem; }
-.row-actions { display: flex; gap: .3rem; flex-wrap: wrap; align-items: center; }
+.row-actions { display: flex; gap: .3rem; flex-wrap: nowrap; align-items: center; }
+.row-actions select { width: 6.5rem; }
+@media (max-width: 85rem) { .row-actions { flex-wrap: wrap; } }
+.sub-row td { border-top: 0; padding-top: 0; }
 .add-menu { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-top: .6rem; }
 .add-menu .label { font-weight: 600; }
 tr.dragging { opacity: .5; }
@@ -104,9 +111,17 @@ tr.dragging { opacity: .5; }
 .side table { width: 100%; border-collapse: collapse; }
 .side th { text-align: left; font-size: .95rem; padding: .2rem; }
 .side td { padding: .2rem; vertical-align: top; }
-.side td input[type="text"] { width: 100%; min-width: 6rem; }
-.side td input[type="number"] { width: 4.5rem; }
+.side td input[type="text"] { width: 100%; min-width: 7rem; }
+.side td select { width: 4.6rem; }
+.side td input[type="number"] { width: 4rem; }
+.side .field input[type="text"], .side .field select { width: 100%; }
 .total { font-weight: 700; margin-top: .5rem; }
 
 /* Download screen */
 .steps li { margin: .4rem 0; }
+
+/* Fit and finish */
+#course-title { width: 22rem; max-width: 100%; }
+.side { overflow-x: auto; }
+.side td input[type="text"] { min-width: 5.5rem; }
+.side button.small { padding: .2rem .35rem; }

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Builder preview</title>
+<link rel="stylesheet" href="../styles.css">
+<script src="../vendor/jszip.min.js"></script>
+<script>window.__COURSE_BUILDER_TEST__ = true;</script>
+</head>
+<body>
+<!-- Opens the app straight on the review screen with a busy sample course, for looking at the layout.
+     Nothing here is saved. Add ?plan=units or ?plan=project for the other templates. -->
+<div id="root"></div>
+<script type="module">
+import { mount } from '../src/ui/app.js';
+import { fromTemplate } from '../src/templates.js';
+import * as edit from '../src/edit.js';
+
+const memory = new Map();
+const storage = { getItem: (k) => memory.get(k) ?? null, setItem: (k, v) => memory.set(k, v), removeItem: (k) => memory.delete(k) };
+const plan = new URLSearchParams(location.search).get('plan') ?? 'weekly';
+let course = fromTemplate(plan, { title: 'PSY 210 Online · Spring 2027', firstDay: '2027-01-25', weeks: 14, dueWeekday: 5 });
+course = edit.setMeets(edit.setFormat(course, 'hybrid'), [2, 4]);
+const tuesday = course.weekRows[0].find((r) => r.kind === 'class');
+course = edit.updateRow(course, tuesday.id, { theme: 'What is psychology?', readings: ['Myers Ch. 1', 'Milgram (1963)'] });
+mount(document.getElementById('root'), storage).set({ course, screen: 'review' });
+</script>
+</body>
+</html>
