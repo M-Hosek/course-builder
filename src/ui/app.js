@@ -6,6 +6,7 @@ import { renderTemplates } from './screens/templates.js';
 import { renderWalkthrough } from './screens/walkthrough.js';
 import { renderReview } from './screens/review.js';
 import { renderDownload } from './screens/download.js';
+import './wire.js';
 
 const SCREENS = { start: renderStart, basics: renderBasics, templates: renderTemplates, walkthrough: renderWalkthrough, review: renderReview, download: renderDownload };
 export const AUTOSAVE_OFF = 'Your work can\'t be saved automatically in this browser. Use "Download my work" before you close this page.';
