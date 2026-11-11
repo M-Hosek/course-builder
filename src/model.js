@@ -12,7 +12,8 @@
  * @typedef {{version: 1, title: string, firstDay: string, weeks: number, dueWeekday: number, dueTime: string,
  *   format: 'hybrid'|'async', meets: number[], grading: 'weighted'|'other', groups: Group[],
  *   extraCredit: ExtraCredit, homePage: {welcome: boolean, syllabus: boolean, communication: boolean, startHere: boolean},
- *   startHere: Row[], weekRows: Row[][], dismissedReminders: number[]}} Course
+ *   startHere: Row[], weekRows: Row[][], dismissedReminders: number[],
+ *   parked?: {week: number, row: ClassRow}[]}} Course   parked = class lines kept for a day or format that is switched off
  */
 
 /** Canvas's names for the ways students can hand in an assignment. */

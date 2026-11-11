@@ -18,13 +18,17 @@ const KIND_GROUPS = [
   ['Project', (a) => a.project],
 ];
 
-/** Participation gets 10%; the kinds of work chosen share the other 90% equally. */
+/**
+ * Participation gets 10%; the kinds of work chosen share the other 90% equally.
+ * Each suggested group carries a `role` (what kind of work it is for), so renaming it keeps its items.
+ */
 export function suggestGroups(a) {
   const names = KIND_GROUPS.filter(([, chosen]) => chosen(a)).map(([name]) => name);
-  if (names.length === 0) return [makeGroup('Participation', 100)];
+  const made = (name, weight) => ({ ...makeGroup(name, weight), role: name });
+  if (names.length === 0) return [made('Participation', 100)];
   const share = Math.floor(90 / names.length);
   const extra = 90 - share * names.length;
-  return [...names.map((name, i) => makeGroup(name, share + (i === 0 ? extra : 0))), makeGroup('Participation', 10)];
+  return [...names.map((name, i) => made(name, share + (i === 0 ? extra : 0))), made('Participation', 10)];
 }
 
 /** @returns {Answers} */
@@ -43,9 +47,10 @@ export function defaultAnswers() {
 }
 
 /**
- * Build a course from the walkthrough's answers. Items go into the group with the matching name
- * (Assignments, Discussions, Quizzes, Exams, Project, Participation); if that group was renamed or
- * removed, the item simply has no group yet.
+ * Build a course from the walkthrough's answers. Items go into the group suggested for their kind
+ * of work, whatever it has been renamed to, or else a group the faculty member gave that name
+ * (Assignments, Discussions, Quizzes, Exams, Project, Participation). If there is neither, the item
+ * has no group yet and the review screen says so.
  * @param {{title: string, firstDay: string, weeks: number, dueWeekday: number}} basics
  * @param {Answers} a
  * @returns {import('./model.js').Course}
@@ -53,9 +58,9 @@ export function defaultAnswers() {
 export function fromAnswers(basics, a) {
   const c = newCourse(basics);
   c.grading = a.grading;
-  c.groups = a.groups.map((g) => ({ ...g }));
+  c.groups = a.groups.map(({ role, ...g }) => g);
   c.homePage = { ...a.homePage };
-  const g = Object.fromEntries(c.groups.map((x) => [x.name, x.id]));
+  const g = { ...Object.fromEntries(a.groups.map((x) => [x.name, x.id])), ...Object.fromEntries(a.groups.filter((x) => x.role).map((x) => [x.role, x.id])) };
   const due = (n) => dueDateFor(c.firstDay, n, c.dueWeekday);
 
   c.weekRows.forEach((rows, i) => {

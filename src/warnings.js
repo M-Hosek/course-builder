@@ -5,7 +5,7 @@ export const BREAK_CALENDAR_URL = 'https://www.hws.edu/catalogue/calendar.aspx';
 const BREAK_NAME = { spring: 'spring break', thanksgiving: 'Thanksgiving break' };
 
 /**
- * @typedef {{id: string, kind: 'weights'|'due-outside'|'break'|'annotation', week?: number, rowId?: string,
+ * @typedef {{id: string, kind: 'weights'|'due-outside'|'no-group'|'break'|'annotation', week?: number, rowId?: string,
  *   message: string, dismissible: boolean}} Warning
  */
 
@@ -24,6 +24,8 @@ export function breakWeeks(course) {
   return out;
 }
 
+/** Work that earns a grade: assignments, quizzes, and discussions that carry points. */
+const isGraded = (r) => r.kind === 'assignment' || r.kind === 'quiz' || (r.kind === 'discussion' && r.points != null && r.points !== '');
 const trim = (n) => String(Math.round(n * 100) / 100);
 
 /**
@@ -44,17 +46,23 @@ export function warningsFor(course) {
   }
 
   const weeks = course.weekRows.length;
-  const courseStart = weekRange(course.firstDay, 1).start;
   const courseEnd = weekRange(course.firstDay, weeks).end;
+  const weighted = course.grading === 'weighted';
+  const groupIds = new Set(course.groups.map((g) => g.id));
   const breaks = new Map(breakWeeks(course).map((b) => [b.week, b.kind]));
 
   const rowWarnings = (rows, n) => {
     for (const r of rows) {
       if (r.kind === 'class') continue;
-      if (r.due && (r.due < courseStart || r.due > courseEnd)) {
+      if (r.due && r.due < course.firstDay) {
+        out.push({ id: `due-${r.id}`, kind: 'due-outside', week: n, rowId: r.id, message: 'This due date is before the first day of class.', dismissible: false });
+      } else if (r.due && r.due > courseEnd) {
         out.push({ id: `due-${r.id}`, kind: 'due-outside', week: n, rowId: r.id, message: 'This due date is outside the course dates.', dismissible: false });
       } else if (r.due && n > 0 && weekOf(course.firstDay, r.due) !== n) {
         out.push({ id: `due-${r.id}`, kind: 'due-outside', week: n, rowId: r.id, message: `This due date is not in Week ${n}.`, dismissible: false });
+      }
+      if (weighted && isGraded(r) && !groupIds.has(r.groupId)) {
+        out.push({ id: `group-${r.id}`, kind: 'no-group', week: n, rowId: r.id, message: 'This item has no grade group, so it won\'t count toward the grade.', dismissible: false });
       }
       if (r.kind === 'assignment' && r.submissionTypes?.includes('student_annotation')) {
         out.push({ id: `annotation-${r.id}`, kind: 'annotation', week: n, rowId: r.id, message: ANNOTATION_NOTE, dismissible: false });

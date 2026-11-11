@@ -12,8 +12,9 @@ function topBar(course, store) {
   const changeWeeks = (e) => {
     const weeks = Math.round(Number(e.target.value));
     if (!Number.isFinite(weeks) || weeks < 1 || weeks > MAX_WEEKS) { store.set({}); return; } // put the old number back
-    // Nothing is removed until the faculty member says what should happen to the items in those weeks.
-    if (weeks < course.weeks && weeksToRemove(course, weeks).rows > 0) store.set({ dialog: { type: 'weeks', weeks } });
+    // Nothing is removed until the faculty member has seen what those weeks hold and said what should happen.
+    const gone = weeksToRemove(course, weeks);
+    if (weeks < course.weeks && gone.rows + gone.lines > 0) store.set({ dialog: { type: 'weeks', weeks } });
     else store.update((c) => setWeeks(c, weeks, 'move'));
   };
   const radio = (value, text) => h('span', { class: 'choice' },
@@ -43,16 +44,29 @@ function topBar(course, store) {
 
 /** "Weeks 13–14 have 2 items. What should happen to them?" — asked before any week is removed. */
 function weeksQuestion(course, dialog, store) {
-  const { rows } = weeksToRemove(course, dialog.weeks);
+  const { rows, lines } = weeksToRemove(course, dialog.weeks);
   const first = dialog.weeks + 1;
-  const which = first === course.weeks ? `Week ${first} has` : `Weeks ${first}–${course.weeks} have`;
+  const one = first === course.weeks;
+  const which = one ? `Week ${first} has` : `Weeks ${first}–${course.weeks} have`;
+  const typed = `${lines} class ${lines === 1 ? 'line' : 'lines'} with a theme or readings`;
   const answer = (how) => () => { store.set({ dialog: null }); store.update((c) => setWeeks(c, dialog.weeks, how)); };
+  const cancel = (focused) => h('button', { type: 'button', id: 'weeks-cancel', 'data-autofocus': focused || null, onclick: () => store.set({ dialog: null }) }, 'Cancel');
+
+  if (rows === 0) {
+    // Only typed class lines are at stake. Class lines belong to their week, so they cannot be moved.
+    return h('div', { class: 'dialog', role: 'alertdialog', 'aria-labelledby': 'weeks-question' },
+      h('p', { id: 'weeks-question' }, `${which} ${typed}. ${lines === 1 ? 'It' : 'They'} will be removed.`),
+      h('p', { class: 'buttons' },
+        cancel(true),
+        h('button', { type: 'button', id: 'weeks-delete', onclick: answer('delete') }, one ? `Remove Week ${first}` : `Remove Weeks ${first}–${course.weeks}`)));
+  }
   return h('div', { class: 'dialog', role: 'alertdialog', 'aria-labelledby': 'weeks-question' },
-    h('p', { id: 'weeks-question' }, `${which} ${rows} ${rows === 1 ? 'item' : 'items'}. What should happen to them?`),
+    h('p', { id: 'weeks-question' }, `${which} ${rows} ${rows === 1 ? 'item' : 'items'}. What should happen to them?`,
+      lines > 0 && ` Also, ${typed} will be removed either way.`),
     h('p', { class: 'buttons' },
       h('button', { type: 'button', class: 'primary', id: 'weeks-move', 'data-autofocus': true, onclick: answer('move') }, `Move them into Week ${dialog.weeks}`),
       h('button', { type: 'button', id: 'weeks-delete', onclick: answer('delete') }, 'Delete them'),
-      h('button', { type: 'button', id: 'weeks-cancel', onclick: () => store.set({ dialog: null }) }, 'Cancel')));
+      cancel(false)));
 }
 
 /** Parts other tasks plug into the review screen: the side panel, rows under an item, and more questions. */

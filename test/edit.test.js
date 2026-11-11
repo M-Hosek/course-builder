@@ -35,13 +35,13 @@ test('changing the first day moves every date by the same number of days', () =>
 });
 test('a first day in mid-week keeps class days on their weekdays', () => {
   const c = e.setFirstDay(hybrid(), '2027-09-01');
-  assert.deepEqual(classes(c.weekRows[0]).map((r) => r.date), ['2027-08-31', '2027-09-02']);
+  assert.deepEqual(classes(c.weekRows[0]).map((r) => r.date), ['2027-09-02'], 'no class before the first day');
   assert.equal(find(c, 'Reading response 1').due, '2027-09-03');
 });
 test('lowering the weeks asks first: moving is the default, deleting is the alternative', () => {
   const c = weekly();
-  assert.deepEqual(e.weeksToRemove(c, 12), { rows: 5 });
-  assert.deepEqual(e.weeksToRemove(c, 14), { rows: 0 });
+  assert.deepEqual(e.weeksToRemove(c, 12), { rows: 5, lines: 0 });
+  assert.deepEqual(e.weeksToRemove(c, 14), { rows: 0, lines: 0 });
   const moved = pure(c, (x) => e.setWeeks(x, 12, 'move'));
   assert.deepEqual([moved.weeks, moved.weekRows.length], [12, 12]);
   assert.deepEqual(titles(moved.weekRows[11]),

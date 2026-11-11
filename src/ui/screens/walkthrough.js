@@ -62,7 +62,7 @@ export function renderWalkthrough(state, store) {
         onRemove: (id) => editGroups(a.groups.filter((g) => g.id !== id)),
         onAdd: () => editGroups([...a.groups, makeGroup('New group', 0)]),
       }),
-      h('p', { class: 'hint' }, 'Items go into the group with the matching name. You can fix weights later on the review screen.'),
+      h('p', { class: 'hint' }, 'Rename a group and its items stay in it. You can fix weights later on the review screen.'),
     ],
     4: () => h('fieldset', null, h('legend', null, 'Students can turn assignments in as'),
       renderSubmissionTypes({ chosen: a.submissionTypes, idPrefix: 'wt', onChange: (submissionTypes) => answer({ submissionTypes }) }),

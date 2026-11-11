@@ -48,7 +48,7 @@ test('due dates outside the course, or outside their week, are flagged on the ro
   c = e.updateRow(c, rr1.id, { due: '2027-06-01' });
   assert.deepEqual(kinds(c, 'due-outside').map((w) => [w.rowId, w.week, w.message]), [[rr1.id, 1, 'This due date is outside the course dates.']]);
   c = e.updateRow(c, rr1.id, { due: '2027-01-20' });
-  assert.equal(kinds(c, 'due-outside')[0].message, 'This due date is outside the course dates.');
+  assert.equal(kinds(c, 'due-outside')[0].message, 'This due date is before the first day of class.');
   c = e.updateRow(c, rr1.id, { due: '2027-02-05' });
   assert.equal(kinds(c, 'due-outside')[0].message, 'This due date is not in Week 1.');
   const moved = e.setWeeks(spring(), 12, 'move');

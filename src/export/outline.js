@@ -57,7 +57,8 @@ export function toExport(course) {
   ];
   const weekModule = (n) => modules[Math.min(Math.max(n, 1), course.weekRows.length)];
 
-  const ec = course.extraCredit ?? { mode: 'none' };
+  // Extra credit only means something on top of weighted groups, so Other grading sends none.
+  const ec = (weighted && course.extraCredit) || { mode: 'none' };
   if (ec.mode === 'separate') {
     // A group whose weight sits on top of 100%.
     groups.push({ key: 'extra-credit', name: 'Extra credit', weight: weighted ? Number(ec.percent) || 0 : 0, dropLowest: 0 });

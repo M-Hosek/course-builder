@@ -38,8 +38,9 @@ export const weekOf = (firstDay, date) => Math.floor(daysBetween(weekStart(first
 /** The date of a weekday (0 = Sunday … 6 = Saturday) inside week n. */
 export const dueDateFor = (firstDay, n, weekday) => addDays(weekRange(firstDay, n).start, (weekday + 6) % 7);
 
-/** Dates of the meeting days (1 = Monday … 5 = Friday) in week n, in order. */
-export const classDates = (firstDay, n, meets) => [...meets].sort((a, b) => a - b).map((m) => addDays(weekRange(firstDay, n).start, m - 1));
+/** Dates of the meeting days (1 = Monday … 5 = Friday) in week n, in order. None falls before the first day of class. */
+export const classDates = (firstDay, n, meets) => [...meets].sort((a, b) => a - b)
+  .map((m) => addDays(weekRange(firstDay, n).start, m - 1)).filter((d) => d >= firstDay);
 
 /** 'Tue Jan 26' */
 export function dayLabel(date) {

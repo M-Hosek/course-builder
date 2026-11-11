@@ -28,7 +28,7 @@ export async function downloadForCanvas(store, { thenShow = true } = {}) {
 }
 
 /** Things worth fixing before a download. Break reminders are not among them. */
-export const toCheck = (warnings) => warnings.filter((w) => w.kind === 'weights' || w.kind === 'due-outside');
+export const toCheck = (warnings) => warnings.filter((w) => ['weights', 'due-outside', 'no-group'].includes(w.kind));
 
 /** Download is always allowed; with unresolved warnings it asks once first. */
 export function startDownload(store, warnings) {

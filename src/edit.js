@@ -22,7 +22,8 @@ function locate(c, rowId) {
 
 // ---- class lines -------------------------------------------------------------------------------
 
-const datedRow = (date, from = {}) => ({ id: uid(), kind: 'class', date, theme: from.theme ?? '', readings: [...(from.readings ?? [])] });
+const datedRow = (date) => ({ id: uid(), kind: 'class', date, theme: '', readings: [] });
+const hasText = (r) => !!(r.theme?.trim() || r.readings?.length || r.noClass);
 
 /** Keep the class lines at the top of a week in date order, if they are all still at the top. */
 function sortClassBlock(rows) {
@@ -33,26 +34,56 @@ function sortClassBlock(rows) {
   return [...block, ...rows.slice(top)];
 }
 
+// Class lines that the current format or meeting days have no place for are parked, not thrown away:
+// c.parked holds { week, row } and never goes to Canvas. Ticking the day again, or switching the
+// format back, brings each line back exactly as it was.
+const park = (c, n, rows) => { if (rows.length) (c.parked ??= []).push(...rows.map((row) => ({ week: n, row }))); };
+/** Take the parked lines of week n that match out of the parking place. */
+function unpark(c, n, match) {
+  const taken = [];
+  c.parked = (c.parked ?? []).filter((p) => (p.week === n && match(p.row) ? (taken.push(p.row), false) : true));
+  return taken;
+}
+
 /** Make one week's class lines match the course's format and meeting days. Item rows are never touched. */
 function fitClassRows(c, n) {
   const rows = c.weekRows[n - 1];
-  const meetsNow = c.format === 'hybrid' && c.meets.length > 0;
+  const hybrid = c.format === 'hybrid';
   const whole = rows.find((r) => isClass(r) && r.date === null);
 
-  if (!meetsNow) {
-    // One line for the whole week. A hybrid course with no meeting days picked yet also stays like this.
-    if (whole) return rows.filter((r) => !isClass(r) || r === whole);
-    const first = rows.filter((r) => isClass(r) && !r.extra).sort((a, b) => a.date.localeCompare(b.date))[0];
-    return [{ ...wholeWeekRow(), theme: first?.theme ?? '', readings: [...(first?.readings ?? [])] }, ...rows.filter(isItem)];
+  if (!hybrid || c.meets.length === 0) {
+    // One line for the whole week. A hybrid course with no meeting days picked yet also looks like
+    // this, and keeps its one-off extra meetings.
+    const stays = (r) => isItem(r) || r === whole || (hybrid && r.extra);
+    const leaving = rows.filter((r) => !stays(r));
+    let line = whole;
+    if (!line) {
+      const first = leaving.filter((r) => !r.extra).sort((a, b) => a.date.localeCompare(b.date))[0];
+      line = { ...wholeWeekRow(), theme: first?.theme ?? '', readings: [...(first?.readings ?? [])] };
+    }
+    park(c, n, leaving);
+    return whole ? rows.filter(stays) : sortClassBlock([line, ...rows.filter((r) => isClass(r) && stays(r)), ...rows.filter(isItem)]);
   }
 
   const wanted = classDates(c.firstDay, n, c.meets);
-  const have = new Set(rows.filter((r) => isClass(r) && r.date && !r.extra).map((r) => r.date));
-  // Lines for days that still meet stay as they are; one-off meetings stay; the rest go.
-  const kept = rows.filter((r) => isItem(r) || r.extra || (r.date && wanted.includes(r.date)));
-  const fresh = wanted.filter((d) => !have.has(d)).map((d, i) => datedRow(d, whole && i === 0 && d === wanted[0] ? whole : {}));
+  // Lines for days that still meet stay as they are; one-off meetings stay; the rest are parked.
+  const stays = (r) => isItem(r) || r.extra || (r.date && wanted.includes(r.date));
+  const kept = rows.filter(stays);
+  const have = new Set(kept.filter((r) => isClass(r) && !r.extra).map((r) => r.date));
+  const missing = wanted.filter((d) => !have.has(d));
+  // The one line of a week was started from its earliest meeting, so what is typed in it goes back there.
+  const seed = (c.parked ?? []).filter((p) => p.week === n && !p.row.extra).map((p) => p.row.date).sort()[0];
+  const back = unpark(c, n, (r) => r.extra || missing.includes(r.date));
+  park(c, n, rows.filter((r) => !stays(r) && r !== whole));
+  // A day comes back as it was left; a day never seen before starts empty.
+  const fresh = missing.map((d) => {
+    const was = back.find((r) => !r.extra && r.date === d);
+    const fromWhole = whole && hasText(whole) && d === wanted[0] && (!was || d === seed);
+    if (fromWhole) return { ...(was ?? datedRow(d)), theme: whole.theme, readings: [...whole.readings] };
+    return was ?? datedRow(d);
+  });
   const lastClass = kept.reduce((at, r, i) => (isClass(r) ? i : at), -1);
-  kept.splice(lastClass + 1, 0, ...fresh);
+  kept.splice(lastClass + 1, 0, ...back.filter((r) => r.extra), ...fresh);
   return sortClassBlock(kept);
 }
 
@@ -84,24 +115,27 @@ export function setBasics(course, { title, dueWeekday } = {}) {
 
 /**
  * Change the first day of class. Every due date and class date moves by the same number of days:
- * the distance between the two Week 1 Mondays, so everything stays on its weekday.
+ * the distance between the two Week 1 Mondays, so everything stays on its weekday. When the weeks
+ * themselves move, dismissed break reminders come back, because they were about other dates.
  */
 export function setFirstDay(course, firstDay) {
   const c = copy(course);
   const days = daysBetween(weekStart(c.firstDay), weekStart(firstDay));
   c.firstDay = firstDay;
-  for (const rows of allLists(c)) {
+  for (const rows of [...allLists(c), (c.parked ?? []).map((p) => p.row)]) {
     for (const r of rows) {
       if (r.due) r.due = addDays(r.due, days);
       if (isClass(r) && r.date) r.date = addDays(r.date, days);
     }
   }
-  return c;
+  if (days !== 0) c.dismissedReminders = [];
+  return refitAll(c); // a first day in mid-week has no class before it
 }
 
-/** How many item rows sit in the weeks that would be removed. */
+/** What sits in the weeks that would be removed: item rows, and class lines with something typed in them. */
 export function weeksToRemove(course, weeks) {
-  return { rows: course.weekRows.slice(Math.max(weeks, 0)).flat().filter(isItem).length };
+  const gone = course.weekRows.slice(Math.max(weeks, 0)).flat();
+  return { rows: gone.filter(isItem).length, lines: gone.filter((r) => isClass(r) && hasText(r)).length };
 }
 
 /**
@@ -114,6 +148,7 @@ export function setWeeks(course, weeks, onRemoved = 'move') {
   if (target < c.weekRows.length) {
     const removed = c.weekRows.splice(target);
     if (onRemoved === 'move') c.weekRows[target - 1].push(...removed.flat().filter(isItem));
+    if (c.parked) c.parked = c.parked.filter((p) => p.week <= target);
   }
   while (c.weekRows.length < target) {
     c.weekRows.push([wholeWeekRow()]);
