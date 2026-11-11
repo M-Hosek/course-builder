@@ -1,4 +1,4 @@
-# HWS Online Course Builder
+# Online Course Builder
 
 A web page where HWS faculty set up a new Canvas course: pick a ready-made plan (or answer a few
 questions), adjust it week by week, and download one file that Canvas imports as a course skeleton.
